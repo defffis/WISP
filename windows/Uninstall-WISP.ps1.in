@@ -1,0 +1,42 @@
+param()
+$ErrorActionPreference = 'Stop'
+$workDir = $null
+try {
+    foreach ($tool in @('ssh.exe','scp.exe')) {
+        if (!(Get-Command $tool -ErrorAction SilentlyContinue)) { throw 'Нужен клиент OpenSSH Windows.' }
+    }
+    Write-Host 'Полное удаление WISP __VERSION__' -ForegroundColor Cyan
+    Write-Host 'Роутер вернётся в прежнюю сеть. Будут удалены файлы WISP, его ключ TLS и автозапуск.'
+    Write-Host 'Wi-Fi переподключится. Если восстановление сети не удастся, данные останутся для повторной попытки.'
+    $routerAddress = (Read-Host 'Текущий IP роутера').Trim()
+    if ($routerAddress -notmatch '^(?:[0-9]{1,3}\.){3}[0-9]{1,3}$') { throw 'Введите IPv4-адрес роутера.' }
+    foreach ($octet in $routerAddress.Split('.')) { if ([int]$octet -gt 255) { throw 'Некорректный IPv4-адрес.' } }
+    $portText = (Read-Host 'Порт SSH [22]').Trim()
+    if (!$portText) { $portText = '22' }
+    if ($portText -notmatch '^\d{1,5}$' -or [int]$portText -lt 1 -or [int]$portText -gt 65535) { throw 'Некорректный порт SSH.' }
+    if ((Read-Host 'Для полного удаления введите УДАЛИТЬ') -cne 'УДАЛИТЬ') { Write-Host 'Удаление отменено.'; exit 0 }
+    $workDir = Join-Path ([IO.Path]::GetTempPath()) ('wisp-remove-' + [Guid]::NewGuid().ToString('N'))
+    New-Item -ItemType Directory -Path $workDir > $null
+    $payloadFile = Join-Path $workDir 'remove-wisp.sh'
+    [IO.File]::WriteAllBytes($payloadFile,[Convert]::FromBase64String('__REMOVER_BASE64__'))
+    if ((Get-FileHash -LiteralPath $payloadFile -Algorithm SHA256).Hash.ToLowerInvariant() -ne '__REMOVER_HASH__') { throw 'Повреждён пакет удаления.' }
+    $remoteFile = '/tmp/remove-wisp-' + [Guid]::NewGuid().ToString('N') + '.sh'
+    $options = @('-o','HostKeyAlgorithms=+ssh-rsa','-o','StrictHostKeyChecking=ask','-o','ConnectTimeout=10','-o','ServerAliveInterval=15','-o','ServerAliveCountMax=2')
+    Write-Host 'Введите пароль root в запросе SSH. Утилита не сохраняет и не передаёт пароль другим сервисам.'
+    & scp.exe -O @options -P ([int]$portText) $payloadFile "root@${routerAddress}:$remoteFile"
+    if ($LASTEXITCODE -ne 0) { throw 'Передача не выполнена. Удаление не запускалось.' }
+    & ssh.exe @options -p ([int]$portText) "root@$routerAddress" "sh $remoteFile; result=`$?; rm -f $remoteFile; exit `$result"
+    if ($LASTEXITCODE -ne 0) { throw 'Запрос удаления не подтверждён. Проверьте сообщение роутера и подключение.' }
+    Write-Host 'Запрос принят. Дождитесь переподключения Wi-Fi и откройте прежний адрес роутера.' -ForegroundColor Green
+    Write-Host 'Это подтверждение запуска. При ошибке восстановления WISP сохранит свои файлы.'
+} catch {
+    Write-Host ('Ошибка: ' + $_.Exception.Message) -ForegroundColor Red
+    exit 1
+} finally {
+    if ($workDir -and (Test-Path -LiteralPath $workDir)) {
+        $fullTemp = [IO.Path]::GetFullPath([IO.Path]::GetTempPath())
+        $fullWork = [IO.Path]::GetFullPath($workDir)
+        if (!$fullWork.StartsWith($fullTemp,[StringComparison]::OrdinalIgnoreCase) -or [IO.Path]::GetFileName($fullWork) -notmatch '^wisp-remove-[0-9a-f]{32}$') { throw 'Небезопасный путь временных файлов.' }
+        Remove-Item -LiteralPath $fullWork -Recurse -Force
+    }
+}
