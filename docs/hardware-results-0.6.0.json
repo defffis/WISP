@@ -1,0 +1,50 @@
+{
+  "version": "0.6.0",
+  "device": {
+    "model": "Xiaomi Router BE6500 RN02",
+    "firmware": "stock MiWiFi 1.0.64"
+  },
+  "installed": true,
+  "phase": "ACTIVE",
+  "language": "ru",
+  "selected_locale_only": true,
+  "installed_kib": 132,
+  "data_free_kib": 3252,
+  "code_and_state_paths": [
+    "/data/usr/app/wisp",
+    "/tmp/wisp",
+    "/tmp/wisp-panel"
+  ],
+  "network_config_files_unchanged": 5,
+  "network_migration": "Existing confirmed transaction adopted; addresses, routes and Wi-Fi unchanged. Own DHCP/DNS restarted with preserved leases to move volatile paths.",
+  "private_backup": "Saved on operator PC, excluded from public project and release",
+  "native_isolated_removal_scenarios": 20,
+  "native_isolated_client_states": [
+    "ACTIVE",
+    "OFF",
+    "ROLLED_BACK",
+    "ABORTED"
+  ],
+  "native_client_transition_and_removal_rejection": "PASS",
+  "live_client_count_dry_run": 8,
+  "live_client_deauthentication_sent": false,
+  "live_full_removal_performed": false,
+  "physical_reboot_tested": false,
+  "live_http_checks": {
+    "version": "0.6.0",
+    "phase": "ACTIVE",
+    "anonymous": "401 including locale.js",
+    "malformed_uninstall": "400",
+    "foreign_origin_and_csrf": "403",
+    "live_browser_readonly_proxy": "PASS desktop/mobile",
+    "live_client_reconnection_performed": false,
+    "network_files": "unchanged"
+  },
+  "client_dns_and_https_checks": {
+    "passed": 9,
+    "total": 9,
+    "router_credentials_loaded": false
+  },
+  "old_wisp_deployment_and_staging_removed": true,
+  "other_hardware_or_firmware_verified": false
+}

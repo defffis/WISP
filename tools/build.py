@@ -51,7 +51,7 @@ remove_bat='@echo off\nchcp 65001 >nul\nsetlocal\nset "WISP_REMOVE_BAT=%~f0"\npo
 (OUT/'Uninstall-WISP.bat').write_text(remove_bat,encoding='ascii',newline='\r\n')
 ps=(ROOT/'windows/Install-WISP.ps1.in').read_text(encoding='utf-8-sig').replace('__VERSION__',VERSION).replace('__INSTALLER_HASH__',hashlib.sha256(installer.read_bytes()).hexdigest())
 (OUT/'Install-WISP.ps1').write_text(ps,encoding='utf-8-sig',newline='\r\n')
-shutil.copyfile(ROOT/'windows/Install-WISP.bat',OUT/'Install-WISP.bat')
+(OUT/'Install-WISP.bat').write_text((ROOT/'windows/Install-WISP.bat').read_text(encoding='ascii'),encoding='ascii',newline='\r\n')
 # Empty host database: SSH asks before trusting a new router, and refuses changed keys.
 (OUT/'wisp-installer-known-hosts.txt').write_bytes(b'')
 shutil.copyfile(ROOT/'README.md',OUT/f'wisp-{VERSION}-README.md')

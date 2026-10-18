@@ -4,7 +4,7 @@ from pathlib import Path
 from browser import Browser
 ROOT=Path(__file__).resolve().parents[1]
 INJECT='''<script>
-window.fixture={ok:true,version:'0.5.0',phase:'OFF',remaining:0,transaction:'a'.repeat(32),can_confirm:false,persistent:false};
+window.fixture={ok:true,version:'0.6.0',phase:'OFF',remaining:0,transaction:'a'.repeat(32),can_confirm:false,persistent:false};
 window.prompt=()=>window.promptAnswer ?? null;window.fixture.clients={phase:'IDLE',requested:0,failed:0};window.calls=[];window.delay=0;window.confirm=()=>true;
 window.fetch=async(url,options={})=>{
  if(window.networkDown)throw new TypeError('Нет связи с роутером. Проверьте подключение.');

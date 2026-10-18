@@ -22,7 +22,9 @@ if os.name=='nt':
  # Environment input avoids reinterpreting a file path as PowerShell code.
  command="$e=$null;$t=$null;[System.Management.Automation.Language.Parser]::ParseFile($env:WISP_PARSE_FILE,[ref]$t,[ref]$e)>$null;if($e.Count){$e;exit 1}"
  env=dict(os.environ,WISP_PARSE_FILE=str(ROOT/'work/remove-package-decoded.ps1'))
- p=subprocess.run(['powershell.exe','-NoProfile','-Command',command],capture_output=True,encoding='utf-8',env=env);assert p.returncode==0,(p.stdout,p.stderr)
+ for filename in [ROOT/'work/remove-package-decoded.ps1',DIST/'Install-WISP.ps1']:
+  env['WISP_PARSE_FILE']=str(filename)
+  p=subprocess.run(['powershell.exe','-NoProfile','-Command',command],capture_output=True,encoding='utf-8',env=env);assert p.returncode==0,(p.stdout,p.stderr)
 checks=[dict(test=s,result='PASS') for s in ['BAT works without adjacent files or network downloads','Exact Russian confirmation required; password handled by native SSH','Embedded loader SHA256 and limited recovery-only archive match sources','PowerShell syntax parsed on Windows; local temp removal restricted to its generated directory']]
 (ROOT/'work/removal-package-results.json').write_text(json.dumps(checks,indent=2))
 print('Standalone BAT, PowerShell and embedded recovery archive checks passed.')
