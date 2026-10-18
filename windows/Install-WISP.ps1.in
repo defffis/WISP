@@ -1,0 +1,35 @@
+param([ValidateSet('ru','en')][string]$Language)
+$ErrorActionPreference = 'Stop'
+if (!$Language) { $Language = (Read-Host 'Language / Язык панели [ru/en]').Trim().ToLowerInvariant() }
+if ($Language -notin @('ru','en')) { Write-Host 'Choose ru or en / Выберите ru или en'; exit 2 }
+function T([string]$ru,[string]$en) { if ($Language -eq 'ru') { $ru } else { $en } }
+$installer = Join-Path $PSScriptRoot 'install-wisp-__VERSION__.sh'
+$knownHosts = Join-Path $PSScriptRoot 'wisp-installer-known-hosts.txt'
+$remoteFile = '/tmp/install-wisp-' + [Guid]::NewGuid().ToString('N') + '.sh'
+try {
+    if (!(Test-Path -LiteralPath $installer -PathType Leaf)) { throw (T 'Распакуйте весь ZIP: пакет установки отсутствует.' 'Extract the entire ZIP: installation payload missing.') }
+    foreach ($tool in @('ssh.exe','scp.exe')) {
+        if (!(Get-Command $tool -ErrorAction SilentlyContinue)) { throw (T 'Установите клиент OpenSSH Windows.' 'Install the Windows OpenSSH Client.') }
+    }
+    Write-Host (T 'Установка WISP __VERSION__. Перед обновлением выключите WISP.' 'WISP __VERSION__ installation. Turn WISP off before upgrading.') -ForegroundColor Cyan
+    Write-Host (T 'Будет установлен только выбранный язык. Сеть останется в обычном режиме повторителя.' 'Only the selected language will be installed. The network stays in standard repeater mode.')
+    $routerAddress = (Read-Host (T 'Текущий IP роутера' 'Current router IP')).Trim()
+    if ($routerAddress -notmatch '^(?:[0-9]{1,3}\.){3}[0-9]{1,3}$') { throw (T 'Введите IPv4-адрес роутера.' 'Enter the router IPv4 address.') }
+    foreach ($octet in $routerAddress.Split('.')) { if ([int]$octet -gt 255) { throw (T 'Неверный IPv4-адрес.' 'Invalid IPv4 address.') } }
+    $portText = (Read-Host (T 'Порт SSH [22]' 'SSH port [22]')).Trim()
+    if (!$portText) { $portText = '22' }
+    if ($portText -notmatch '^\d{1,5}$' -or [int]$portText -lt 1 -or [int]$portText -gt 65535) { throw (T 'Неверный порт SSH.' 'Invalid SSH port.') }
+    if ((Get-FileHash -LiteralPath $installer -Algorithm SHA256).Hash.ToLowerInvariant() -ne '__INSTALLER_HASH__') { throw (T 'Контрольная сумма не совпала.' 'Payload checksum mismatch.') }
+    $options = @('-o','HostKeyAlgorithms=+ssh-rsa','-o','StrictHostKeyChecking=ask','-o',"UserKnownHostsFile=$knownHosts",'-o','ConnectTimeout=10','-o','ServerAliveInterval=15','-o','ServerAliveCountMax=2')
+    Write-Host (T 'Введите пароль root непосредственно в SSH. Проверьте ключ роутера при первом подключении.' 'Enter the root password directly in SSH. Verify the router key on first connection.')
+    & scp.exe -O @options -P ([int]$portText) $installer "root@${routerAddress}:$remoteFile"
+    if ($LASTEXITCODE -ne 0) { throw (T 'Передача пакета не выполнена.' 'Package transfer failed.') }
+    & ssh.exe @options -p ([int]$portText) "root@$routerAddress" "sh $remoteFile $Language; rc=`$?; rm -f $remoteFile; exit `$rc"
+    if ($LASTEXITCODE -ne 0) { throw (T 'Установка не завершена. Проверьте сообщение роутера.' 'Installation did not finish. Check the router message.') }
+    Write-Host (T 'Готово. Вход: root и текущий пароль SSH.' 'Ready. Sign in with root and the current SSH password.') -ForegroundColor Green
+    Write-Host "https://${routerAddress}:8443/"
+    exit 0
+} catch {
+    Write-Host $_.Exception.Message -ForegroundColor Red
+    exit 1
+}
