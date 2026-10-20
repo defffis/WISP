@@ -91,13 +91,13 @@ def main():
    b.wait("document.documentElement.lang==='en' && document.querySelector('#state').textContent==='WISP is off'")
    assert b.js("document.querySelector('#reconnect').textContent==='Reconnect all Wi-Fi clients' && !document.querySelector('#reconnect').hidden")
    assert b.js("Array.from(document.querySelectorAll('button')).every(x=>!/[А-Яа-я]/.test(x.textContent))")
-   assert b.js("document.querySelector('footer a').href==='https://github.com/defffis/WISP'")
+   assert b.js("!document.querySelector('a[href*=\"github.com\"]')")
    b.click('#reconnect');b.wait("document.querySelector('#notice').textContent.includes('Wi-Fi clients: 3')")
    b.screenshot('standalone-en-off-mobile.png',390,844)
    assert b.js('document.documentElement.scrollWidth<=innerWidth')
    b.js("window.promptAnswer='УДАЛИТЬ'");before=b.js('window.calls.length');b.click('#uninstall');assert b.js('window.calls.length')==before
    b.js("window.promptAnswer='DELETE'");b.click('#uninstall');b.wait("document.querySelector('#state').textContent==='WISP removal started'")
-   results.append('English panel, repeater reconnect, repository link and localized deletion confirmation')
+   results.append('English panel, repeater reconnect, no repository link and localized deletion confirmation')
    b.ws.close()
   finally:
    proc.terminate();proc.wait(timeout=10);server.shutdown();time.sleep(.5)
